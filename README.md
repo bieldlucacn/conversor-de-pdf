@@ -10,3 +10,4 @@ Eu usei o pdf.js para converter o pdf p/ uma imagem em png, que permite o usuár
 - [ ] Escolher entre outros tipos de imagens
 - [ ] Adicionar suporte para baixar todas as páginas de uma vez
 - [ ] Adicionar múltiplos PDFs e baixar o .zip com as imagens (muito futuramente)
+- [ ] Se Deus quiser um dia fazer todo esse site em React
