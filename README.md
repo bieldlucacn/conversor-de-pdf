@@ -5,8 +5,8 @@ Enfim, você pode acessar e usufruir do site, tão qual quanto fazer contribuiç
 Eu usei o pdf.js para converter o pdf p/ uma imagem em png, que permite o usuário baixar. Tudo é feito pelo lado do browser do usuário, sem persistência, histórico ou algo do tipo.
 
 ## To-dos
-[] Adicionar o nome do arquivo ao anexo de download
-[] Polir e melhorar a aparência do site
-[] Escolher entre outros tipos de imagens
-[] Adicionar suporte para baixar todas as páginas de uma vez
-[] Adicionar múltiplos PDFs e baixar o .zip com as imagens (muito futuramente)
+- [ ] Adicionar o nome do arquivo ao anexo de download
+- [ ] Polir e melhorar a aparência do site
+- [ ] Escolher entre outros tipos de imagens
+- [ ] Adicionar suporte para baixar todas as páginas de uma vez
+- [ ] Adicionar múltiplos PDFs e baixar o .zip com as imagens (muito futuramente)
