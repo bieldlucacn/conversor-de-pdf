@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Conversor de PDFs</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale = 1.0, maximum-scale = 1.0, user-scalable=yes">
+<meta name="description" content="Conversor automático de PDF para imagens :)">
+<!-- Bootstrap CSS -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+<script src="pdf.js"></script>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="shortcut-icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="manifest" href="manifest.json">
+<link rel="mask-icon" href="safari-pinned-tab.svg" color="#1a809d">
+<link rel="stylesheet" href="stylesheet.css">
+<meta name="msapplication-TileColor" content="#2b5797">
+<meta name="theme-color" content="#ffffff">
+<script src="pdf.worker.js"></script>
+<script src="https://kit.fontawesome.com/fb8400fef2.js" crossorigin="anonymous"></script>
+</head>
+
+<body style="background-color: darkgrey;" class="fullscreen">
+<br><br><br><br><br><br>
+<div id="main" style="margin: auto;">
+	<h1><i class="far fa-file-pdf">&nbsp;</i>Bem vindo ao conversor de PDF 1.2</h1>
+	<h2 class="maintext">Oi! Tudo bem?
+		Esse site automaticamente converte o PDF para você :)<br/>
+		É só você apertar o botão abaixo, selecionar o PDF, depois
+		apertar em "baixar imagem" e pronto!</h2>
+		<div id="alerta-pdf" style="display: none;">
+			<div class="alert alert-danger alert-dismissible fade show" role="alert">
+			  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+			  </button>
+			  <strong><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></strong>&ensp;Você tentou enviar um arquivo que não era um PDF 	
+			<script>
+			  $(".alert").alert();
+			</script>
+		</div>
+</div>
+<button id="upload-button">Selecionar o PDF</button> 
+<input type="file" id="file-to-upload" accept="application/pdf" />
+
+<div id="pdf-main-container" style="margin: auto">
+	<div id="pdf-loader"><img class="loadingimg" src="loading.svg"></img>Carregando documento...</div>
+	<div id="pdf-contents">
+		<div id="pdf-meta">
+			<div id="pdf-buttons">
+				<button class="butao" id="pdf-prev">Anterior</button>
+				<button class="butao" id="pdf-next">Próxima</button>
+			</div>
+			<div class="text" id="page-count-container">P&aacute;gina <div style="color: #059AD2; font-family: Segoe UI; font-weight: bold;" id="pdf-current-page"></div> de <div style="color: #059AD2; font-family: Segoe UI; font-weight: bold;" id="pdf-total-pages"></div></div>
+		</div>
+		<canvas id="pdf-canvas" width="2048"></canvas>
+		<canvas id="canvas-thumb" width="512" style="box-shadow:1px 1px 1px 1px rgba(0, 0, 0, 0.158);"></canvas>
+		<!--  filter: blur(1px); -webkit-filter: blur(1px); -->
+		<div id="carregado" class="text" style="text-align: center;">P&aacute;gina <span style="color: #059AD2; font-family: Segoe UI; font-weight: bold;" id="pdf-carregado-pag"></span> do PDF carregada, pronto p/ download // Miniatura acima</div>
+		<div id="page-loader"><img class="loadingimg" src="loading.svg"></img>Carregando página...</div>
+		<a id="download-image">Baixar PNG</a>
+	</div>
+</div>
+
+<script>
+
+var __PDF_DOC,
+	__CURRENT_PAGE,
+	__TOTAL_PAGES,
+	__PAGE_RENDERING_IN_PROGRESS = 0,
+	__CANVAS = $('#pdf-canvas').get(0),
+	__CANVAS2 = $('#canvas-thumb').get(0),
+	__CANVAS_CTX = __CANVAS.getContext('2d');
+	__CANVAS_CTX2 = __CANVAS2.getContext('2d');
+function showPDF(pdf_url) {
+	$("#pdf-loader").show();
+
+	PDFJS.getDocument({ url: pdf_url }).then(function(pdf_doc) {
+		__PDF_DOC = pdf_doc;
+		__TOTAL_PAGES = __PDF_DOC.numPages;
+		
+		// Hide the pdf loader and show pdf container in HTML
+		$("#pdf-loader").hide();
+		$("#pdf-contents").show();
+		$("#pdf-total-pages").text(__TOTAL_PAGES);
+		// Show the first page
+		showPage(1);
+	}).catch(function(error) {
+		// If error re-show the upload button
+		$("#pdf-loader").hide();
+		$("#upload-button").show();
+
+		alert(error.message);
+	});;
+}
+
+function showPage(page_no) {
+	__PAGE_RENDERING_IN_PROGRESS = 1;
+	__CURRENT_PAGE = page_no;
+
+	// Disable Prev & Next buttons while page is being loaded
+	$("#pdf-next, #pdf-prev").attr('disabled', 'disabled');
+
+	// While page is being rendered hide the canvas and show a loading message
+	$("#pdf-canvas").hide();
+	$("#carregado").hide();
+	$("#page-loader").show();
+	$("#download-image").hide();
+	$("#canvas-thumb").hide();
+
+	// Update current page in HTML
+	$("#pdf-current-page").text(page_no);
+	
+	// Fetch the page
+	__PDF_DOC.getPage(page_no).then(function(page) {
+		// As the canvas is of a fixed width we need to set the scale of the viewport accordingly
+		var scale_required = __CANVAS.width // page.getViewport(1).width;
+		var scale_required2 = __CANVAS2.width
+
+
+		// Get viewport of the page at required scale
+		var viewport = page.getViewport(__CANVAS.width / page.getViewport(1.0).width);
+		var viewport2 = page.getViewport(__CANVAS2.width / page.getViewport(1.0).width);
+		var viewport3 = viewport2.height * 0.5;
+
+		// Set canvas height
+		//__CANVAS.width = viewport.width;
+		__CANVAS.height = viewport.height;
+		__CANVAS2.height = viewport3;
+		//__CANVAS.style.width = "100%";
+
+		var renderContext = {
+			canvasContext: __CANVAS_CTX2,
+			viewport: viewport2
+		};
+		var renderContext2 = {
+			canvasContext: __CANVAS_CTX,
+			viewport: viewport
+		};
+		
+		// Render the page contents in the canvas
+		page.render(renderContext).then(function() {
+			__PAGE_RENDERING_IN_PROGRESS = 0;
+		page.render(renderContext2);
+			
+			// Re-enable Prev & Next buttons
+			$("#pdf-next, #pdf-prev").removeAttr('disabled');
+
+			// Show the canvas and hide the page loader
+			$("#pdf-canvas").hide();
+			$("#carregado").show();
+			$("#pdf-carregado-pag").text(page_no);
+			$("#page-loader").hide();
+			$("#canvas-thumb").show();
+			$("#download-image").show();
+			//wrapper.style.width = Math.floor(viewport.width/__CANVAS.width) + 'px';
+			//wrapper.style.height = Math.floor(viewport.height/__CANVAS.width) + 'px';
+		});
+	});
+}
+
+// Upon click this should should trigger click on the #file-to-upload file input element
+// This is better than showing the not-good-looking file input element
+$("#upload-button").on('click', function() {
+	$("#file-to-upload").trigger('click');
+});
+
+// When user chooses a PDF file
+$("#file-to-upload").on('change', function() {
+	// Validate whether PDF
+    if(['application/pdf'].indexOf($("#file-to-upload").get(0).files[0].type) == -1) {
+        // Shows the error alert box
+		$("#alerta-pdf").show();
+        return;
+    }
+
+	$("#upload-button").hide();
+
+	// Send the object url of the pdf
+	showPDF(URL.createObjectURL($("#file-to-upload").get(0).files[0]));
+});
+
+// Previous page of the PDF
+$("#pdf-prev").on('click', function() {
+	if(__CURRENT_PAGE != 1)
+		showPage(--__CURRENT_PAGE);
+});
+
+// Next page of the PDF
+$("#pdf-next").on('click', function() {
+	if(__CURRENT_PAGE != __TOTAL_PAGES)
+		showPage(++__CURRENT_PAGE);
+});
+
+// Download pic
+$("#download-image").on('click', function() {
+	$(this).attr('href', __CANVAS.toDataURL()).attr('download', 'pdf.png');
+});
+</script>
+<script src="main.js"></script>
+</body>
+</html>
